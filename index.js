@@ -25,6 +25,22 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
+        const instructorCollection = client.db("accent-adept-DB").collection("instructor");
+        const classesCollection = client.db("accent-adept-DB").collection("classes")
+
+        // instructor api 
+        app.use("/instructors", async(req, res) => {
+            const result = await instructorCollection.find().toArray()
+            res.send(result)
+        })
+
+        //classes api
+        app.use("/classes", async(req, res) => {
+            const result = await classesCollection.find().toArray()
+            .res.send(result)
+        })
+
+
 
 
         await client.connect();
