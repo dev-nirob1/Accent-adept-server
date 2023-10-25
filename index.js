@@ -29,16 +29,22 @@ async function run() {
         const classesCollection = client.db("accent-adept-DB").collection("classes")
 
         // instructor api 
-        app.use("/instructors", async(req, res) => {
+        app.get("/instructors", async(req, res) => {
             const result = await instructorCollection.find().toArray()
             res.send(result)
         })
 
-        //classes api
-        app.use("/classes", async(req, res) => {
-            const result = await classesCollection.find().toArray()
-            .res.send(result)
+        app.get("/popularInstructors", async(req, res) =>{
+            const result = await instructorCollection.find().limit(6).toArray();
+            res.send(result)
         })
+
+        //classes api
+        app.get("/classes", async(req, res) => {
+            const result = await classesCollection.find().toArray()
+            res.send(result)
+        })
+
 
 
 
