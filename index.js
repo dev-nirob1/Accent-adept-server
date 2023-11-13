@@ -25,28 +25,27 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        const instructorCollection = client.db("accent-adept-DB").collection("instructor");
-        const classesCollection = client.db("accent-adept-DB").collection("classes")
+        const coursesCollection = client.db("accent-adept-DB").collection("courses");
 
         // instructor api 
-        app.get("/instructors", async(req, res) => {
-            const result = await instructorCollection.find().toArray()
+        app.get("/instructors", async (req, res) => {
+            const result = await coursesCollection.find().toArray()
             res.send(result)
         })
 
-        app.get("/popularInstructors", async(req, res) =>{
-            const result = await instructorCollection.find().limit(6).toArray();
+        app.get("/popularInstructors", async (req, res) => {
+            const result = await coursesCollection.find().limit(6).toArray();
             res.send(result)
         })
 
         //classes api
-        app.get("/classes", async(req, res) => {
-            const result = await classesCollection.find().toArray()
+        app.get("/classes", async (req, res) => {
+            const result = await coursesCollection.find().toArray()
             res.send(result)
         })
 
-        app.get("/popularClasses", async(req, res) =>{
-            const result = await classesCollection.find().sort({totalStudents: -1}).limit(6).toArray()
+        app.get("/popularClasses", async (req, res) => {
+            const result = await coursesCollection.find().sort({ totalStudents: -1 }).limit(6).toArray()
             res.send(result)
         })
 
