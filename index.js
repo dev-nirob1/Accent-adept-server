@@ -26,7 +26,14 @@ async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
         const coursesCollection = client.db("accent-adept-DB").collection("courses");
+        const usersCollection = client.db("accent-adept-DB").collection("users")
 
+        // users related api
+        app.get("/users", async (req, res) => {
+            const result = usersCollection.find().toArray()
+            res.send(result)
+        })
+        
         // instructor api 
         app.get("/instructors", async (req, res) => {
             const result = await coursesCollection.find().toArray()
