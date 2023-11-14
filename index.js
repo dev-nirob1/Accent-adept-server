@@ -30,10 +30,24 @@ async function run() {
 
         // users related api
         app.get("/users", async (req, res) => {
-            const result = usersCollection.find().toArray()
+            const result = await usersCollection.find().toArray()
             res.send(result)
         })
-        
+
+        //store user info in database
+        app.put('/users', async (req, res) => {
+            const user = req.body
+            const query = { email: user.email }
+            const options = { upsert: true }
+            const updateDoc = {
+                $set: user,
+            }
+            const result = await usersCollection.updateOne(query, updateDoc, options)
+            console.log(result)
+            res.send(result)
+        })
+
+
         // instructor api 
         app.get("/instructors", async (req, res) => {
             const result = await coursesCollection.find().toArray()
