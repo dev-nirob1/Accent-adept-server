@@ -1,4 +1,4 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express');
 const app = express();
 const cors = require('cors');
@@ -47,6 +47,27 @@ async function run() {
             res.send(result)
         })
 
+        //update user role 
+        app.patch('/users/admin/:id', async (req, res) =>{
+            const id = req.params.id;
+            const query = {_id: new ObjectId(id)}
+            const options = {upsert: true}
+            const updateDoc = {
+                $set: {
+                    role: 'admin'
+                }
+            }
+            const result = await usersCollection.updateOne(query, updateDoc, options)
+            res.send(result)
+        })
+
+        // delete a user from database
+        app.delete('/users/:id', async(req, res) =>{
+            const id = req.params.id;
+            const query = {_id: new ObjectId(id)}
+            const result = await usersCollection.deleteOne(query)
+            res.send(result)
+        })
 
         // instructor api 
         app.get("/instructors", async (req, res) => {
