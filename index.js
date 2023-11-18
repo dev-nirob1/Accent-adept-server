@@ -47,7 +47,7 @@ async function run() {
             res.send(result)
         })
 
-        //update user role 
+        //update user role to admin 
         app.patch('/users/admin/:id', async (req, res) =>{
             const id = req.params.id;
             const query = {_id: new ObjectId(id)}
@@ -55,6 +55,20 @@ async function run() {
             const updateDoc = {
                 $set: {
                     role: 'admin'
+                }
+            }
+            const result = await usersCollection.updateOne(query, updateDoc, options)
+            res.send(result)
+        })
+
+        //update user role to admin 
+        app.patch('/users/instructor/:id', async (req, res) =>{
+            const id = req.params.id;
+            const query = {_id: new ObjectId(id)}
+            const options = {upsert: true}
+            const updateDoc = {
+                $set: {
+                    role: 'instrutor'
                 }
             }
             const result = await usersCollection.updateOne(query, updateDoc, options)
@@ -69,7 +83,7 @@ async function run() {
             res.send(result)
         })
 
-        // instructor api 
+        // instructors page api 
         app.get("/instructors", async (req, res) => {
             const result = await coursesCollection.find().toArray()
             res.send(result)
