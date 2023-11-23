@@ -48,10 +48,10 @@ async function run() {
         })
 
         //update user role to admin 
-        app.patch('/users/admin/:id', async (req, res) =>{
+        app.patch('/users/admin/:id', async (req, res) => {
             const id = req.params.id;
-            const query = {_id: new ObjectId(id)}
-            const options = {upsert: true}
+            const query = { _id: new ObjectId(id) }
+            const options = { upsert: true }
             const updateDoc = {
                 $set: {
                     role: 'admin'
@@ -62,10 +62,10 @@ async function run() {
         })
 
         //update user role to admin 
-        app.patch('/users/instructor/:id', async (req, res) =>{
+        app.patch('/users/instructor/:id', async (req, res) => {
             const id = req.params.id;
-            const query = {_id: new ObjectId(id)}
-            const options = {upsert: true}
+            const query = { _id: new ObjectId(id) }
+            const options = { upsert: true }
             const updateDoc = {
                 $set: {
                     role: 'instrutor'
@@ -76,9 +76,9 @@ async function run() {
         })
 
         // delete a user from database
-        app.delete('/users/:id', async(req, res) =>{
+        app.delete('/users/:id', async (req, res) => {
             const id = req.params.id;
-            const query = {_id: new ObjectId(id)}
+            const query = { _id: new ObjectId(id) }
             const result = await usersCollection.deleteOne(query)
             res.send(result)
         })
@@ -105,6 +105,11 @@ async function run() {
             res.send(result)
         })
 
+        app.post("/courses", async (req, res) => {
+            const courseDetails = req.body;
+            const result = await coursesCollection.insertOne(courseDetails)
+            res.send(result)
+        })
 
 
 
