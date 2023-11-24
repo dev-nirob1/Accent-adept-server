@@ -105,6 +105,17 @@ async function run() {
             res.send(result)
         })
 
+        //get classes added by instructors
+
+        app.get('/courses/:email', async (req, res) => {
+            const email = req.params.email
+            const query = { 'host.email': email }
+            const result = await coursesCollection.find(query).toArray()
+      
+            console.log(result)
+            res.send(result)
+          })
+
         app.post("/courses", async (req, res) => {
             const courseDetails = req.body;
             const result = await coursesCollection.insertOne(courseDetails)
