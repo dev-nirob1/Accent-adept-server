@@ -89,6 +89,8 @@ async function run() {
             res.send(result)
         })
 
+        // top 6 most popular instrutors 
+        
         app.get("/popularInstructors", async (req, res) => {
             const result = await coursesCollection.find().limit(6).toArray();
             res.send(result)
@@ -100,6 +102,7 @@ async function run() {
             res.send(result)
         })
 
+        // top 6 most popular classes based on total students
         app.get("/popularClasses", async (req, res) => {
             const result = await coursesCollection.find().sort({ totalStudents: -1 }).limit(6).toArray()
             res.send(result)
@@ -116,10 +119,19 @@ async function run() {
             res.send(result)
           })
 
+          //store all added course to database
+
         app.post("/courses", async (req, res) => {
             const courseDetails = req.body;
             const result = await coursesCollection.insertOne(courseDetails)
             res.send(result)
+        })
+
+        // delete specific course 
+        app.delete("/courses/:id", async(req, res)=>{
+            const id = req.params.id;
+            const query = {_id: new ObjectId(id)}
+            const result = await coursesCollection.deleteOne(query)
         })
 
 
