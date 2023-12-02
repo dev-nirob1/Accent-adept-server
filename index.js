@@ -2,12 +2,14 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express');
 const app = express();
 const cors = require('cors');
+// const morgan = require('morgan')
 require('dotenv').config();
 const port = process.env.PORT || 5000;
 
 // middleware
 app.use(cors());
 app.use(express.json())
+// app.use(morgan('dev'))
 
 
 
@@ -27,6 +29,7 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         const coursesCollection = client.db("accent-adept-DB").collection("courses");
         const usersCollection = client.db("accent-adept-DB").collection("users")
+        const selectedClassCollection = client.db("accent-adept-DB").collection("selectedClass")
 
         // users related api
         app.get("/users", async (req, res) => {
@@ -61,7 +64,7 @@ async function run() {
             res.send(result)
         })
 
-        //update user role to admin 
+        //update user role to instructor 
         app.patch('/users/instructor/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
@@ -90,7 +93,7 @@ async function run() {
         })
 
         // top 6 most popular instrutors 
-        
+
         app.get("/popularInstructors", async (req, res) => {
             const result = await coursesCollection.find().limit(6).toArray();
             res.send(result)
@@ -102,11 +105,25 @@ async function run() {
             res.send(result)
         })
 
+        //get single course info
+        app.get("/course/details/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await coursesCollection.findOne(query)
+            res.send(result)
+        })
+
         // top 6 most popular classes based on total students
         app.get("/popularClasses", async (req, res) => {
             const result = await coursesCollection.find().sort({ totalStudents: -1 }).limit(6).toArray()
             res.send(result)
         })
+
+        //store selected class to database
+        // app.put('/selectedClass', async(req, res) => {
+        //     const selectedClass = req.body;
+        //     const
+        // })
 
         //get classes added by instructors
 
@@ -114,12 +131,12 @@ async function run() {
             const email = req.params.email
             const query = { 'host.email': email }
             const result = await coursesCollection.find(query).toArray()
-      
+
             console.log(result)
             res.send(result)
-          })
+        })
 
-          //store all added course to database
+        //store all added course to database
 
         app.post("/courses", async (req, res) => {
             const courseDetails = req.body;
@@ -128,9 +145,9 @@ async function run() {
         })
 
         // delete specific course 
-        app.delete("/courses/:id", async(req, res)=>{
+        app.delete("/courses/:id", async (req, res) => {
             const id = req.params.id;
-            const query = {_id: new ObjectId(id)}
+            const query = { _id: new ObjectId(id) }
             const result = await coursesCollection.deleteOne(query)
         })
 
