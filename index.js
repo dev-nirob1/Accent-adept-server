@@ -29,7 +29,7 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         const coursesCollection = client.db("accent-adept-DB").collection("courses");
         const usersCollection = client.db("accent-adept-DB").collection("users")
-        const selectedClassCollection = client.db("accent-adept-DB").collection("selectedClass")
+        const selectedCourseCollection = client.db("accent-adept-DB").collection("selectedCourse")
 
         // users related api
         app.get("/users", async (req, res) => {
@@ -54,7 +54,7 @@ async function run() {
                 $set: user,
             }
             const result = await usersCollection.updateOne(query, updateDoc, options)
-            console.log(result)
+            // console.log(result)
             res.send(result)
         })
 
@@ -127,25 +127,32 @@ async function run() {
             res.send(result)
         })
 
-        //store selected class to database
-        // app.put('/selectedClass', async(req, res) => {
-        //     const selectedClass = req.body;
-        //     const
-        // })
+        //store selected course to database
+        app.post('/selectCourses', async (req, res) => {
+            const selectCourse = req.body;
+            const result = await selectedCourseCollection.insertOne(selectCourse)
+            res.send(result)
+        })
 
-        //get classes added by instructors
+        //get selected courses from database
+        app.get('/selectedCourses', async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email }
+            const result = await selectedCourseCollection.find(query).toArray()
+            res.send(result)
+        })
+
+        //get courses added by instructors
 
         app.get('/courses/:email', async (req, res) => {
             const email = req.params.email
             const query = { 'host.email': email }
             const result = await coursesCollection.find(query).toArray()
-
-            console.log(result)
+            // console.log(result)
             res.send(result)
         })
 
         //store all added course to database
-
         app.post("/courses", async (req, res) => {
             const courseDetails = req.body;
             const result = await coursesCollection.insertOne(courseDetails)
@@ -157,6 +164,7 @@ async function run() {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await coursesCollection.deleteOne(query)
+            res.send(result)
         })
 
 
