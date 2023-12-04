@@ -79,7 +79,7 @@ async function run() {
             const options = { upsert: true }
             const updateDoc = {
                 $set: {
-                    role: 'instrutor'
+                    role: 'instructor'
                 }
             }
             const result = await usersCollection.updateOne(query, updateDoc, options)
@@ -94,22 +94,46 @@ async function run() {
             res.send(result)
         })
 
-        // instructors page api 
-        app.get("/instructors", async (req, res) => {
-            const result = await coursesCollection.find().toArray()
-            res.send(result)
+        //get all courses from database
+        app.get('/courses', async (req, res) => {
+            const result = await coursesCollection.find().toArray();
+            res.send(result);
+        });
+
+        //update course state
+        app.patch('/course/updateState/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+            const updateDoc = {
+                $set: {
+                    state: 'approved'
+                }
+            }
+            const result = await coursesCollection.updateOne(query, updateDoc, options)
         })
 
-        // top 6 most popular instrutors 
-
-        app.get("/popularInstructors", async (req, res) => {
-            const result = await coursesCollection.find().limit(6).toArray();
+        // instructors page api 
+        app.get("/instructors", async (req, res) => {
+            const result = await coursesCollection.find({ state: 'approved' }).toArray()
             res.send(result)
         })
 
         //classes api
         app.get("/classes", async (req, res) => {
-            const result = await coursesCollection.find().toArray()
+            const result = await coursesCollection.find({ state: 'approved' }).toArray()
+            res.send(result)
+        })
+
+        // top 6 most popular classes based on total students
+        app.get("/popularClasses", async (req, res) => {
+            const result = await coursesCollection.find({ state: 'approved' }).sort({ totalStudents: -1 }).limit(6).toArray()
+            res.send(result)
+        })
+
+        // top 6 most popular instrutors 
+        app.get("/popularInstructors", async (req, res) => {
+            const result = await coursesCollection.find({ state: 'approved' }).limit(6).toArray();
             res.send(result)
         })
 
@@ -121,11 +145,14 @@ async function run() {
             res.send(result)
         })
 
-        // top 6 most popular classes based on total students
-        app.get("/popularClasses", async (req, res) => {
-            const result = await coursesCollection.find().sort({ totalStudents: -1 }).limit(6).toArray()
-            res.send(result)
-        })
+        // Get selected courses for user from database
+        app.get('/selectedCourses', async (req, res) => {
+            const email = req.query.email;
+            console.log(email);
+            const filter = { 'userEmail': email };
+            const result = await selectedCourseCollection.find(filter).toArray();
+            res.send(result);
+        });
 
         //store selected course to database
         app.post('/selectCourses', async (req, res) => {
@@ -134,13 +161,7 @@ async function run() {
             res.send(result)
         })
 
-        //get selected courses from database
-        app.get('/selectedCourses', async (req, res) => {
-            const email = req.query.email;
-            const query = { email: email }
-            const result = await selectedCourseCollection.find(query).toArray()
-            res.send(result)
-        })
+
 
         //get courses added by instructors
 
