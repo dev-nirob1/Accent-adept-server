@@ -3,14 +3,14 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const morgan = require('morgan')
+// const morgan = require('morgan')
 require('dotenv').config();
 const port = process.env.PORT || 5000;
 
 // middleware
 app.use(cors());
 app.use(express.json())
-app.use(morgan('dev'))
+// app.use(morgan('dev'))
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@simplecrud.xgcpsfy.mongodb.net/?retryWrites=true&w=majority`;
@@ -25,11 +25,13 @@ const client = new MongoClient(uri, {
 });
 
 const verifyJWT = async (req, res, next) => {
-    const authorization = req.headers.authorization
+    const authorization = req.headers.authorization;
+
     if (!authorization) {
         return res.status(401).send({ error: true, message: 'Unauthorized access' })
     }
     const token = authorization.split(' ')[1]
+
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
         if (error) {
             return res.status(401).send({ error: true, message: 'Unauthorized access' })
@@ -46,6 +48,27 @@ async function run() {
         const usersCollection = client.db("accent-adept-DB").collection("users")
         const selectedCourseCollection = client.db("accent-adept-DB").collection("selectedCourse")
 
+        //verify admin middleware
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email }
+            const user = await usersCollection.findOne(query)
+            if (user?.role !== 'admin') {
+                return res.status(403).send({ error: true, message: 'forbidden access' })
+            }
+            next()
+        }
+
+        const verifyInstructor = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email };
+            const user = await usersCollection.findOne(query)
+            if (user?.role !== 'instructor') {
+                return res.status(403).send({ error: true, message: 'forbidden access' })
+            }
+            next()
+        }
+
         //genarate jwt token
         app.post('/jwt', (req, res) => {
             const email = req.body;
@@ -58,7 +81,7 @@ async function run() {
         *********************************** users related apis***********************************/
 
         // users related api
-        app.get("/users", async (req, res) => {
+        app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
             const result = await usersCollection.find().toArray()
             res.send(result)
         })
@@ -85,7 +108,7 @@ async function run() {
         })
 
         //update user role to admin 
-        app.patch('/users/admin/:id', async (req, res) => {
+        app.patch('/users/admin/:id', verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const options = { upsert: true }
@@ -99,7 +122,7 @@ async function run() {
         })
 
         //update user role to instructor 
-        app.patch('/users/instructor/:id', async (req, res) => {
+        app.patch('/users/instructor/:id', verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const options = { upsert: true }
@@ -113,7 +136,7 @@ async function run() {
         })
 
         // delete a user from database
-        app.delete('/users/:id', async (req, res) => {
+        app.delete('/users/:id', verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await usersCollection.deleteOne(query)
@@ -131,30 +154,30 @@ async function run() {
 
         // instructors page api 
         app.get("/instructors", async (req, res) => {
-            const result = await coursesCollection.find({ state: 'approved' }).toArray()
+            const result = await coursesCollection.find({ approved: true }).toArray()
             res.send(result)
         })
 
         //classes api
         app.get("/classes", async (req, res) => {
-            const result = await coursesCollection.find({ state: 'approved' }).toArray()
+            const result = await coursesCollection.find({ approved: true }).toArray()
             res.send(result)
         })
 
         // top 6 most popular classes based on total students
         app.get("/popularClasses", async (req, res) => {
-            const result = await coursesCollection.find({ state: 'approved' }).sort({ totalStudents: -1 }).limit(6).toArray()
+            const result = await coursesCollection.find({ approved: true }).sort({ totalStudents: -1 }).limit(6).toArray()
             res.send(result)
         })
 
         // top 6 most popular instrutors 
         app.get("/popularInstructors", async (req, res) => {
-            const result = await coursesCollection.find({ state: 'approved' }).limit(6).toArray();
+            const result = await coursesCollection.find({ approved: true }).limit(6).toArray();
             res.send(result)
         })
 
         //get single course info
-        app.get("/course/details/:id", async (req, res) => {
+        app.get("/course/details/:id", verifyJWT, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await coursesCollection.findOne(query)
@@ -162,26 +185,33 @@ async function run() {
         })
 
         // Get selected courses for user from database
-        app.get('/selectedCourses', async (req, res) => {
+        app.get('/selectedCourses', verifyJWT, async (req, res) => {
+            const decodedEmail = req.decoded.email;
             const email = req.query.email;
             console.log(email);
+            if (email !== decodedEmail) {
+                return res.status(403).send({ error: true, message: 'Forbidden access' })
+            }
             const filter = { 'userEmail': email };
             const result = await selectedCourseCollection.find(filter).toArray();
             res.send(result);
         });
 
-        // Get selected courses by user from database
-        app.get('/selectedCourses/:email', async (req, res) => {
+        // Get selected instructors courses by user from database
+        app.get('/selectedCourses/:email', verifyJWT, verifyInstructor, async (req, res) => {
+            const decodedEmail = req.decoded.email;
             const email = req.params.email;
-            console.log(email);
+            // console.log(email);
+            if (email !== decodedEmail) {
+                return res.status(403).send({ error: true, message: 'Forbidden access' })
+            }
             const filter = { 'hostEmail': email };
             const result = await selectedCourseCollection.find(filter).toArray();
             res.send(result);
         });
 
         //get courses added by instructors
-
-        app.get('/courses/:email', verifyJWT, async (req, res) => {
+        app.get('/courses/:email', verifyJWT, verifyInstructor, async (req, res) => {
             const decodedEmail = req.decoded.email;
             // console.log(decodedEmail)
             const email = req.params.email
@@ -195,27 +225,27 @@ async function run() {
         })
 
         //store selected course to database
-        app.post('/selectCourses', async (req, res) => {
+        app.post('/selectCourses', verifyJWT, async (req, res) => {
             const selectCourse = req.body;
             const result = await selectedCourseCollection.insertOne(selectCourse)
             res.send(result)
         })
 
         //store all added course to database
-        app.post("/courses", async (req, res) => {
+        app.post("/courses", verifyJWT, verifyInstructor, async (req, res) => {
             const courseDetails = req.body;
             const result = await coursesCollection.insertOne(courseDetails)
             res.send(result)
         })
 
         //update course state
-        app.patch('/course/updateState/:id', async (req, res) => {
+        app.patch('/course/updateState/:id', verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const options = { upsert: true }
             const updateDoc = {
                 $set: {
-                    state: 'approved'
+                    approved: true
                 }
             }
             const result = await coursesCollection.updateOne(query, updateDoc, options);
@@ -223,10 +253,18 @@ async function run() {
         })
 
         // delete specific course 
-        app.delete("/courses/:id", async (req, res) => {
+        app.delete("/courses/:id", verifyJWT, verifyInstructor, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await coursesCollection.deleteOne(query)
+            res.send(result)
+        })
+
+        // delete specific selected course 
+        app.delete("/selectedCourse/:id", verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await selectedCourseCollection.deleteOne(query)
             res.send(result)
         })
 
