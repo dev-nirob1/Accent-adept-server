@@ -72,7 +72,7 @@ async function run() {
         //genarate jwt token
         app.post('/jwt', (req, res) => {
             const email = req.body;
-            const token = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+            const token = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '7d' })
             // console.log(token)
             res.send({ token })
         })
@@ -177,7 +177,7 @@ async function run() {
         })
 
         //get single course info
-        app.get("/course/details/:id", verifyJWT, async (req, res) => {
+        app.get("/course/details/:id", async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await coursesCollection.findOne(query)
@@ -196,6 +196,14 @@ async function run() {
             const result = await selectedCourseCollection.find(filter).toArray();
             res.send(result);
         });
+
+        //get signle course details selected by users
+        app.get('/selectedCourse/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await selectedCourseCollection.findOne(query);
+            res.send(result)
+        })
 
         // Get selected instructors courses by user from database
         app.get('/selectedCourses/:email', verifyJWT, verifyInstructor, async (req, res) => {
@@ -225,7 +233,7 @@ async function run() {
         })
 
         //store selected course to database
-        app.post('/selectCourses', verifyJWT, async (req, res) => {
+        app.post('/selectCourses', async (req, res) => {
             const selectCourse = req.body;
             const result = await selectedCourseCollection.insertOne(selectCourse)
             res.send(result)
@@ -266,6 +274,22 @@ async function run() {
             const query = { _id: new ObjectId(id) }
             const result = await selectedCourseCollection.deleteOne(query)
             res.send(result)
+        })
+
+        //payment related apis
+        app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+            const { price } = req.body;
+            const total = parseInt(price * 100)
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: total,
+                currency: "usd",
+                payment_Method_Types: [
+                    'card'
+                ]
+            })
+            res.send({
+                clientSecret: paymentIntent.client_secret
+            })
         })
 
 
