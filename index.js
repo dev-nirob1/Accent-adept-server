@@ -3,13 +3,17 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY);
 // const morgan = require('morgan')
 require('dotenv').config();
 const port = process.env.PORT || 5000;
 
 // middleware
-app.use(cors());
+const corsOptions = {
+    origin: '*',
+    credentials: true,
+    optionSuccessStatus: 200,
+}
+app.use(cors(corsOptions))
 app.use(express.json())
 // app.use(morgan('dev'))
 
@@ -25,9 +29,9 @@ const client = new MongoClient(uri, {
     }
 });
 
-const verifyJWT = async (req, res, next) => {
+const verifyJWT = (req, res, next) => {
     const authorization = req.headers.authorization;
-
+    // console.log(authorization)
     if (!authorization) {
         return res.status(401).send({ error: true, message: 'Unauthorized access' })
     }
@@ -44,6 +48,7 @@ const verifyJWT = async (req, res, next) => {
 
 async function run() {
     try {
+        const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY);
         // Connect the client to the server	(optional starting in v4.7)
         const coursesCollection = client.db("accent-adept-DB").collection("courses");
         const usersCollection = client.db("accent-adept-DB").collection("users")
@@ -75,7 +80,7 @@ async function run() {
         app.post('/jwt', (req, res) => {
             const email = req.body;
             const token = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '7d' })
-            // console.log(token)
+
             res.send({ token })
         })
 
@@ -105,7 +110,7 @@ async function run() {
                 $set: user,
             }
             const result = await usersCollection.updateOne(query, updateDoc, options)
-            // console.log(result)
+
             res.send(result)
         })
 
@@ -179,7 +184,7 @@ async function run() {
         })
 
         //get single course info
-        app.get("/course/details/:id", async (req, res) => {
+        app.get("/course/details/:id", verifyJWT, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await coursesCollection.findOne(query)
@@ -190,7 +195,7 @@ async function run() {
         app.get('/selectedCourses', verifyJWT, async (req, res) => {
             const decodedEmail = req.decoded.email;
             const email = req.query.email;
-            console.log(email);
+
             if (email !== decodedEmail) {
                 return res.status(403).send({ error: true, message: 'Forbidden access' })
             }
@@ -200,7 +205,7 @@ async function run() {
         });
 
         //get signle course details selected by users
-        app.get('/selectedCourse/:id', async (req, res) => {
+        app.get('/selectedCourse/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await selectedCourseCollection.findOne(query);
@@ -211,7 +216,7 @@ async function run() {
         app.get('/selectedCourses/:email', verifyJWT, verifyInstructor, async (req, res) => {
             const decodedEmail = req.decoded.email;
             const email = req.params.email;
-            // console.log(email);
+
             if (email !== decodedEmail) {
                 return res.status(403).send({ error: true, message: 'Forbidden access' })
             }
@@ -223,26 +228,26 @@ async function run() {
         //get courses added by instructors
         app.get('/courses/:email', verifyJWT, verifyInstructor, async (req, res) => {
             const decodedEmail = req.decoded.email;
-            // console.log(decodedEmail)
+
             const email = req.params.email
             if (email !== decodedEmail) {
                 return res.status(403).send({ error: true, message: 'Forbidden access' })
             }
             const query = { 'host.email': email }
             const result = await coursesCollection.find(query).toArray()
-            // console.log(result)
+
             res.send(result)
         })
 
         //store selected course to database
-        app.post('/selectCourses', async (req, res) => {
+        app.post('/selectCourses', verifyJWT, async (req, res) => {
             const selectCourse = req.body;
             const result = await selectedCourseCollection.insertOne(selectCourse)
             res.send(result)
         })
-
+        //todo
         //store all added course to database
-        app.post("/courses", verifyJWT, verifyInstructor, async (req, res) => {
+        app.post("/courses", async (req, res) => {
             const courseDetails = req.body;
             const result = await coursesCollection.insertOne(courseDetails)
             res.send(result)
