@@ -3,6 +3,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY);
 // const morgan = require('morgan')
 require('dotenv').config();
 const port = process.env.PORT || 5000;
@@ -47,6 +48,7 @@ async function run() {
         const coursesCollection = client.db("accent-adept-DB").collection("courses");
         const usersCollection = client.db("accent-adept-DB").collection("users")
         const selectedCourseCollection = client.db("accent-adept-DB").collection("selectedCourse")
+        const paymentsCollection = client.db("accent-adept-DB").collection("payments");
 
         //verify admin middleware
         const verifyAdmin = async (req, res, next) => {
@@ -275,21 +277,34 @@ async function run() {
             const result = await selectedCourseCollection.deleteOne(query)
             res.send(result)
         })
-
+        /******** ********************
         //payment related apis
+        ************************************/
         app.post("/create-payment-intent", verifyJWT, async (req, res) => {
             const { price } = req.body;
             const total = parseInt(price * 100)
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: total,
                 currency: "usd",
-                payment_Method_Types: [
+                payment_method_types: [
                     'card'
                 ]
             })
             res.send({
                 clientSecret: paymentIntent.client_secret
             })
+        })
+
+        //payments data added to server
+
+        app.post('/payments', verifyJWT, async (req, res) => {
+            const payment = req.body;
+            const paymentResult = await paymentsCollection.insertOne(payment)
+
+            //delete course from cart after payment
+            const query = { _id: new ObjectId(payment.selectedCourseId) }
+            const deleteResult = await selectedCourseCollection.deleteOne(query)
+            res.send({ paymentResult, deleteResult })
         })
 
 
