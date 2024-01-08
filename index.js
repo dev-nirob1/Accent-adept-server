@@ -247,7 +247,7 @@ async function run() {
         })
         //todo
         //store all added course to database
-        app.post("/courses", async (req, res) => {
+        app.post("/courses", verifyJWT, verifyInstructor, async (req, res) => {
             const courseDetails = req.body;
             const result = await coursesCollection.insertOne(courseDetails)
             res.send(result)
@@ -298,6 +298,14 @@ async function run() {
             res.send({
                 clientSecret: paymentIntent.client_secret
             })
+        })
+
+        //get payment collection for user
+        app.get('/payment-history', async (req, res) => {
+            const email = req.query.email;
+            const query = { 'user_email': email }
+            const result = await paymentsCollection.find(query).toArray()
+            res.send(result)
         })
 
         //payments data added to server
