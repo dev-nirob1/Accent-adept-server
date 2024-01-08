@@ -195,7 +195,6 @@ async function run() {
         app.get('/selectedCourses', verifyJWT, async (req, res) => {
             const decodedEmail = req.decoded.email;
             const email = req.query.email;
-
             if (email !== decodedEmail) {
                 return res.status(403).send({ error: true, message: 'Forbidden access' })
             }
@@ -211,19 +210,6 @@ async function run() {
             const result = await selectedCourseCollection.findOne(query);
             res.send(result)
         })
-
-        // Get selected instructors courses by user from database
-        app.get('/selectedCourses/:email', verifyJWT, verifyInstructor, async (req, res) => {
-            const decodedEmail = req.decoded.email;
-            const email = req.params.email;
-
-            if (email !== decodedEmail) {
-                return res.status(403).send({ error: true, message: 'Forbidden access' })
-            }
-            const filter = { 'hostEmail': email };
-            const result = await selectedCourseCollection.find(filter).toArray();
-            res.send(result);
-        });
 
         //get courses added by instructors
         app.get('/courses/:email', verifyJWT, verifyInstructor, async (req, res) => {
@@ -298,6 +284,33 @@ async function run() {
             res.send({
                 clientSecret: paymentIntent.client_secret
             })
+        })
+
+        //get all enrolled courses for admin
+        app.get('/all-enrolledcourses', async (req, res) => {
+            const result = await paymentsCollection.find().toArray();
+            res.send(result)
+        })
+
+        // Get users enrolled courses added-by instructors from database
+        app.get('/enrolledCourse/:email', verifyJWT, verifyInstructor, async (req, res) => {
+            const decodedEmail = req.decoded.email;
+            const email = req.params.email;
+
+            if (email !== decodedEmail) {
+                return res.status(403).send({ error: true, message: 'Forbidden access' })
+            }
+            const filter = { 'added_by': email };
+            const result = await paymentsCollection.find(filter).toArray();
+            res.send(result);
+        });
+
+        //get all enrolled courses for user
+        app.get('/enrolledCourses', async (req, res) => {
+            const email = req.query.email;
+            const query = { 'user_email': email }
+            const result = await paymentsCollection.find(query).toArray()
+            res.send(result)
         })
 
         //get payment collection for user
