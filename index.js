@@ -224,14 +224,13 @@ async function run() {
 
             res.send(result)
         })
-
+        //todo update
         //store selected course to database
         app.post('/selectCourses', verifyJWT, async (req, res) => {
             const selectCourse = req.body;
             const result = await selectedCourseCollection.insertOne(selectCourse)
             res.send(result)
         })
-        //todo
         //store all added course to database
         app.post("/courses", verifyJWT, verifyInstructor, async (req, res) => {
             const courseDetails = req.body;
@@ -253,7 +252,7 @@ async function run() {
             res.send(result)
         })
 
-        // delete specific course 
+        // delete specific course (for instructors)
         app.delete("/courses/:id", verifyJWT, verifyInstructor, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
@@ -348,12 +347,6 @@ async function run() {
     }
 }
 run().catch(console.dir);
-
-
-
-
-
-
 
 
 
