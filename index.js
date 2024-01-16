@@ -3,6 +3,8 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY);
+
 // const morgan = require('morgan')
 require('dotenv').config();
 const port = process.env.PORT || 5000;
@@ -48,7 +50,6 @@ const verifyJWT = (req, res, next) => {
 
 async function run() {
     try {
-        const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY);
         // Connect the client to the server	(optional starting in v4.7)
         const coursesCollection = client.db("accent-adept-DB").collection("courses");
         const usersCollection = client.db("accent-adept-DB").collection("users")
@@ -221,16 +222,16 @@ async function run() {
             }
             const query = { 'host.email': email }
             const result = await coursesCollection.find(query).toArray()
-
             res.send(result)
         })
-        //todo update
+
         //store selected course to database
         app.post('/selectCourses', verifyJWT, async (req, res) => {
             const selectCourse = req.body;
             const result = await selectedCourseCollection.insertOne(selectCourse)
             res.send(result)
         })
+
         //store all added course to database
         app.post("/courses", verifyJWT, verifyInstructor, async (req, res) => {
             const courseDetails = req.body;
@@ -238,7 +239,27 @@ async function run() {
             res.send(result)
         })
 
-        //update course state
+        //update course data
+        app.patch('/course/updateInfo/:id', async (req, res) => {
+            const id = req.params.id;
+            const updateCourseInfo = req.body;
+            const filter = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+            const updateDoc = {
+                $set: {
+                    email: updateCourseInfo.email,
+                    name: updateCourseInfo.name,
+                    className: updateCourseInfo.className,
+                    language: updateCourseInfo.language,
+                    price: updateCourseInfo.price,
+                    ratings: updateCourseInfo.ratings
+                }
+            }
+            const result = await coursesCollection.updateOne(filter, updateDoc, options)
+            res.send(result)
+        })
+
+        //update course state to approve
         app.patch('/course/updateState/:id', verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
@@ -246,6 +267,20 @@ async function run() {
             const updateDoc = {
                 $set: {
                     approved: true
+                }
+            }
+            const result = await coursesCollection.updateOne(query, updateDoc, options);
+            res.send(result)
+        })
+
+        //update course state to deny
+        app.patch('/course/denied/:id', verifyJWT, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+            const updateDoc = {
+                $set: {
+                    denied: true
                 }
             }
             const result = await coursesCollection.updateOne(query, updateDoc, options);
@@ -323,28 +358,43 @@ async function run() {
         //payments data added to server
 
         app.post('/payments', verifyJWT, async (req, res) => {
-            const payment = req.body;
-            const paymentResult = await paymentsCollection.insertOne(payment)
 
-            //delete course from cart after payment
-            const query = { _id: new ObjectId(payment.selectedCourseId) }
-            const deleteResult = await selectedCourseCollection.deleteOne(query)
-            res.send({ paymentResult, deleteResult })
+            const paymentDetails = req.body;
+
+            // Insert payment details into payments collection
+            const paymentResult = await paymentsCollection.insertOne(paymentDetails);
+
+            // Delete course from cart after payment
+            const query = { _id: new ObjectId(paymentDetails.selectedCourseId) };
+            const deleteResult = await selectedCourseCollection.deleteOne(query);
+
+            // Update availableSeats and enrolledStudents in courses collection
+            const updateQuery = { _id: new ObjectId(paymentDetails.courseId) };
+            const updateFields = {
+                $inc: {
+                    availableSeats: -1, // Decrease availableSeats by 1
+                    enrolledStudents: 1, // Increase enrolledStudents by 1
+                },
+            };
+            const updateResult = await coursesCollection.updateOne(updateQuery, updateFields);
+
+            res.send({ paymentResult, deleteResult, updateResult });
         })
+    
 
 
 
-        await client.connect();
-        // Send a ping to confirm a successful connection
-        await client.db("admin").command({ ping: 1 });
-        console.log("Pinged to MongoDB!");
-    }
+    await client.connect();
+    // Send a ping to confirm a successful connection
+    await client.db("admin").command({ ping: 1 });
+    console.log("Pinged to MongoDB!");
+}
 
 
     finally {
-        // Ensures that the client will close when you finish/error
-        // await client.close();
-    }
+    // Ensures that the client will close when you finish/error
+    // await client.close();
+}
 }
 run().catch(console.dir);
 
