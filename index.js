@@ -180,7 +180,7 @@ async function run() {
 
         // top 6 most popular instrutors 
         app.get("/popularInstructors", async (req, res) => {
-            const result = await coursesCollection.find({ approved: true }).limit(6).toArray();
+            const result = await coursesCollection.find({ approved: true }).sort({classTaken: -1}).limit(6).toArray();
             res.send(result)
         })
 
