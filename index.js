@@ -104,7 +104,7 @@ async function run() {
         })
 
         //store user info in database
-        app.put('/users', async (req, res) => {
+        app.put('/users/put', async (req, res) => {
             const user = req.body
             const query = { email: user.email }
             const options = { upsert: true }
