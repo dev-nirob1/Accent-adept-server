@@ -3,7 +3,6 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY);
 
 // const morgan = require('morgan')
 require('dotenv').config();
@@ -38,12 +37,13 @@ const verifyJWT = (req, res, next) => {
         return res.status(401).send({ error: true, message: 'Unauthorized access' })
     }
     const token = authorization.split(' ')[1]
-
+    // console.log(token)
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
         if (error) {
             return res.status(401).send({ error: true, message: 'Unauthorized access' })
         }
         req.decoded = decoded;
+        // console.log(req.decoded = decoded)
         next()
     })
 }
@@ -51,6 +51,7 @@ const verifyJWT = (req, res, next) => {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
+        const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY);
         const coursesCollection = client.db("accent-adept-DB").collection("courses");
         const usersCollection = client.db("accent-adept-DB").collection("users")
         const selectedCourseCollection = client.db("accent-adept-DB").collection("selectedCourse")
