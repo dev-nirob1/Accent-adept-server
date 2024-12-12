@@ -104,17 +104,16 @@ async function run() {
         })
 
         //store user info in database
-        app.put('/users/put', async (req, res) => {
-            const user = req.body
-            const query = { email: user.email }
-            const options = { upsert: true }
-            const updateDoc = {
-                $set: user,
+        app.post('/users', async (req, res) => {
+            const user = req.body;
+            const query = { email: user?.email };
+            const existingUser = await usersCollection.findOne(query);
+            if (existingUser) {
+              return res.status(400).send({ message: 'User already exists' });
             }
-            const result = await usersCollection.updateOne(query, updateDoc, options)
-
-            res.send(result)
-        })
+            const result = await usersCollection.insertOne(user);
+            res.send(result);
+          });
 
         //update user role to admin 
         app.patch('/users/admin/:id', verifyJWT, verifyAdmin, async (req, res) => {
